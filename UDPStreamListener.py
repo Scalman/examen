@@ -21,39 +21,27 @@ class UDPStreamListener:
     def __checksum(self, msg):
         s = 0
         for i in range(0, len(msg), 2):
-            w = ord(msg[i]) + (ord(msg[i + 1]) << 8)
+            w = (msg[i]) + (msg[i + 1] << 8)
             s = self.__carry_around_add(s, w)
         return ~s & 0xffff
 
     def join_multicast_stream(self):
-        print("joinging stream")
+        print("joining stream")
 
-        data = b'\xab>W[\xb1\xbf\xe0?'
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind((self.host_ip, self.host_port))
+
+        mreq = struct.pack("4sl", socket.inet_aton(self.host_ip), socket.INADDR_ANY)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        data, addr = self.sock.recvfrom(2048)
         data = binascii.hexlify(data).decode()
-        #data = struct.unpack('d', data)
-        print(data)
-
-       # self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-       # self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-       # self.sock.bind((self.host_ip, self.host_port))
-
-        #mreq = struct.pack("4sl", socket.inet_aton(self.host_ip), socket.INADDR_ANY)
-        #self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        #data, addr = self.sock.recvfrom(2048)
-        #print(data)
-        #data = binascii.hexlify(data).decode()
-        #print(data)
-        data = [data[i: i+1] for i in range(0, len(data), 2)]
-        #print('data ', data)
-        #print(len(data))
+        data = [data[i: i+2] for i in range(0, len(data), 2)]
         data = list(map(lambda x: int(x, 16), data))
-        print('data ', data)
-        data = struct.pack("%dB" % len(data), *data)
-        #print('data ', data)
         print('Checksum: 0x%04x' % self.__checksum(data))
 
         # while True:
         #      data, addr = self.sock.recvfrom(1024) # buffer size is 1024 bytes
-        #      data = list(map(lambda x: int(x,16), data.split()))
+        #      data = list(map(lambda x: int(x,16), data.split('\')))
         #      data = struct.pack("%dB" % len(data), *data)
         #      print('Checksum: ', self.__checksum(data))
